@@ -52,7 +52,7 @@ export default function Chatbot() {
           // Now fetch the actual WAV audio
           const audioResp = await fetch("http://localhost:8000/response-audio");
           if (!audioResp.ok) throw new Error("Failed to fetch audio");
-          const audioBlob = await response.blob();
+          const audioBlob = await audioResp.blob();
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
           audio.onended = () => setIsResponding(false);
