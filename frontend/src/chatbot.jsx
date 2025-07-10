@@ -3,27 +3,15 @@ import "./index.css";
 
 export default function Chatbot() {
   const [open, setOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
+  const [detectedLanguage, setDetectedLanguage] = useState(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
-  const LANGUAGES = [
-    { code: "hi", label: "ए" },
-    { code: "bn", label: "ক" },
-    { code: "en", label: "A" },
-  ];
-
   const toggleChat = () => setOpen(!open);
-  const handleLanguageSelect = (code) => setSelectedLang(code);
 
   const startRecording = async () => {
-    if (!selectedLang) {
-      alert("Please select a language first.");
-      return;
-    }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -38,7 +26,6 @@ export default function Chatbot() {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const formData = new FormData();
         formData.append("audio", blob, "input.webm");
-        formData.append("source_lang", selectedLang);
         formData.append("gender", "female");
 
         try {
@@ -48,6 +35,9 @@ export default function Chatbot() {
           });
 
           if (!response.ok) throw new Error("Failed to get response");
+          
+          const responseData = await response.json();
+          setDetectedLanguage(responseData.detected_language);
           
           // Now fetch the actual WAV audio
           const audioResp = await fetch("http://localhost:8000/response-audio");
@@ -81,31 +71,26 @@ export default function Chatbot() {
 
       {open && (
         <div className="chat-container">
-          <h2>Select Language</h2>
-          <div className="lang-buttons">
-            {LANGUAGES.map((lang) => (
-              <button
-                key={lang.code}
-                className={`lang-btn ${selectedLang === lang.code ? "selected" : ""}`}
-                onClick={() => handleLanguageSelect(lang.code)}
-              >
-                {lang.label}
-              </button>
-            ))}
-          </div>
-
-          {selectedLang && (
-            <>
-              <button
-                className={`record-btn ${isRecording ? "recording" : ""}`}
-                onClick={startRecording}
-                disabled={isRecording || isResponding}
-              >
-                {isRecording ? "🎤 Recording..." : "🎤 Speak"}
-              </button>
-              {isResponding && <div className="bot-response">🤖 Responding...</div>}
-            </>
+          <h2>Voice Chatbot</h2>
+          <p className="chat-description">
+            Speak in any language and I'll respond automatically!
+          </p>
+          
+          {detectedLanguage && (
+            <div className="detected-language">
+              Detected Language: <strong>{detectedLanguage.toUpperCase()}</strong>
+            </div>
           )}
+
+          <button
+            className={`record-btn ${isRecording ? "recording" : ""}`}
+            onClick={startRecording}
+            disabled={isRecording || isResponding}
+          >
+            {isRecording ? "🎤 Recording..." : "🎤 Speak Now"}
+          </button>
+          
+          {isResponding && <div className="bot-response">🤖 Processing...</div>}
         </div>
       )}
     </>
