@@ -32,7 +32,6 @@ def convert_webm_to_wav(webm_path, wav_path):
 @app.post("/speech-to-speech")
 async def speech_to_speech(
     audio: UploadFile = File(...),
-    source_lang: str = Form(...),
     gender: str = Form(default="female")
 ):
     try:
@@ -46,7 +45,7 @@ async def speech_to_speech(
         with open(wav_path, "rb") as f:
             audio_b64 = base64.b64encode(f.read()).decode("utf-8")
 
-        result = bhashini_asr_gemini_tts(audio_b64, source_lang, gender)
+        result = bhashini_asr_gemini_tts(audio_b64, gender)
 
         audio_bytes = base64.b64decode(result["audio_base64"])
         if len(audio_bytes) < 1000:
@@ -58,7 +57,10 @@ async def speech_to_speech(
         os.remove(webm_path)
         os.remove(wav_path)
 
-        return JSONResponse(status_code=200, content={"message": "Audio saved"})
+        return JSONResponse(status_code=200, content={
+            "message": "Audio saved",
+            "detected_language": result.get("detected_language", "unknown")
+        })
     except Exception as e:
         print("[ERROR]", e)
         return JSONResponse(status_code=500, content={"error": str(e)})
